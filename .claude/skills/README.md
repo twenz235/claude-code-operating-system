@@ -119,6 +119,8 @@ These drive a multi-step loop and spawn helper agents.
 
 > The orchestrators stop at safe gates: they may merge into your **integration branch** (e.g. `dev`/`develop`) but open a **PR only** for `main`/`staging`/`prod` so a human approves the production merge. Adjust branch names to your flow.
 
+> **Multi-agent team coordination.** The `team-coordination` skill explains the `/coord-*` multi-session team workflow — several Claude Code sessions working one project **asynchronously** through a shared **BOARD** file, with a human courier relaying between them (sessions can't wake each other). It pairs with the `/coord` engine + `/coord-{manager,design,worker,qa,security}` commands; `worker`/`qa` run as multiple instances (`/coord-worker 1`, `2`, …). Full guide: [`docs/team-coordination.md`](../../docs/team-coordination.md). _ทีม session หลายตัวทำงานพร้อมกันผ่าน BOARD มีคนเดินสาร relay_
+
 ## Group I: Self-upgrade (approval gate)
 
 How the toolkit improves itself **without ever editing its own config silently** — distillation and application are split across two skills, with your approval as the only chokepoint.

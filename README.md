@@ -21,7 +21,8 @@ The goal: an assistant that behaves like a disciplined senior engineer, gets a l
 
 ```
 .claude/
-  skills/            ~45 invokable skills (skill toolkit + curate / review-proposals)
+  commands/          /coord engine + /coord-{manager,design,worker,qa,security} (team coordination)
+  skills/            ~45 invokable skills (skill toolkit + team-coordination + curate / review-proposals)
     README.md        the skills index — start here
   agents/            subagents: curator, shipit-loop, strategic-reviewer, tracker-card
   hooks/             session-start.sh (load) · capture.sh (capture) · curate-cron.sh (weekly)
@@ -50,6 +51,10 @@ Subagents spawned by skills to keep work isolated:
 - **`session-start.sh`** (SessionStart) — injects the previous session's handoff, today's daily note, and any pending self-upgrade proposals as context, so a new session resumes warm. Fail-open.
 - **`capture.sh`** (Stop) — writes one digest note per session into your notes vault. Fail-open.
 - **`curate-cron.sh`** (scheduler, weekly) — the unattended half of the self-upgrade loop (see below).
+
+### Multi-agent team coordination
+
+A set of slash commands (`/coord` engine + `/coord-manager` `/coord-design` `/coord-worker` `/coord-qa` `/coord-security`) lets several Claude Code sessions work one project **asynchronously**, coordinating through a shared **BOARD** file on disk — because sessions can't wake each other, a human courier relays the "go check the board" tap between them. `worker` and `qa` are single commands you run as multiple instances (`/coord-worker 1`, `/coord-worker 2`, …). The matching `team-coordination` skill explains the workflow; the full guide is **[`docs/team-coordination.md`](docs/team-coordination.md)**. _ทีม session หลายตัวทำงานพร้อมกันผ่าน BOARD บนดิสก์ มีคนเดินสาร relay ระหว่างกัน_
 
 ---
 

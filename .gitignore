@@ -28,6 +28,12 @@ settings.local.json
 *.key
 .deploy_platform_key
 
+# --- Team-coordination (COORD) local secrets ----------------------------------
+# Real test logins for the QA role live in an untracked file (see coord/qa-runbook.md).
+# Fill locally, NEVER commit. ไฟล์ login เทสจริง — กรอกในเครื่อง ห้าม commit
+coord/.qa-secrets
+*.qa-secrets
+
 # --- Runtime / generated dirs -------------------------------------------------
 logs/
 .sync/

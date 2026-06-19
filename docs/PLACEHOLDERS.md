@@ -25,6 +25,27 @@ This file is the **canonical list**. If a token appears anywhere in the repo (sk
 | `{{OBJECT_STORE}}` | Your offsite object store for backups / mirrors. | `backup-dr`, infra skills. | `S3`, `GCS`, `B2` |
 | `{{OWNER_ROLE}}` | The manager / decision-maker / ops lead you escalate to and who holds root-level approval. | `management-talk`, `charter-check`, cadence/review skills, workload escalation. | `your manager`, `MD`, `CTO` |
 
+### Team-coordination tokens (the COORD system)
+
+These are used by the `/coord-*` commands, the BOARD, and [`team-coordination.md`](team-coordination.md). They only matter if you run the multi-agent team workflow.
+
+| Token | Meaning | Where it appears | Example value |
+|-------|---------|------------------|---------------|
+| `{{HOST}}` | The human courier who relays messages between sessions — reads "relay to `<role>`" off the board and opens the next session. Not a role; the only cross-session channel. | `team-coordination.md`, the BOARD legend, every relay line, `/coord-*` commands. | `you`, `your name`, `the relay` |
+| `{{INTEGRATION_BRANCH}}` | The branch feature/fix work merges into first (and the only branch a session may merge into). | Git charter, git-permissions table, worker/manager flow. | `develop`, `dev`, `main` |
+| `{{PROTECTED_BRANCHES}}` | Branch(es) no session may touch directly — PR only, human merges. | Git charter, git-permissions table. | `main, staging, production` |
+| `{{DEV_URL}}` | The dev environment base URL (for stale-SHA / health checks). | Troubleshooting, health checks. | `https://dev.example.com` |
+| `{{STAGING_URL}}` | The staging environment base URL; running a shell against it needs `{{HOST}}` approval. | Secrets & safety, troubleshooting. | `https://staging.example.com` |
+| `{{HEALTH_ENDPOINT}}` | The path that reports the live build/SHA, for verifying what's actually deployed. | Stale-SHA check in troubleshooting. | `/health`, `/status` |
+| `{{TIMEZONE}}` | The single timezone all board timestamps use, declared once in the board legend. | BOARD legend, entry timestamps. | `UTC`, `America/New_York` |
+| `{{REPO_ROOT}}` | The absolute root of the project on disk, if the board lives outside the repo. Otherwise paths are repo-relative `./coord/...`. | `team-coordination.md` path refs. | `~/work/acme-app` |
+| `{{BACKEND_REPO}}` | The backend repository name. | Role/handoff refs, card context. | `acme-app-backend` |
+| `{{FRONTEND_REPO}}` | The frontend repository name. | Role/handoff refs, card context. | `acme-app-frontend` |
+| `{{DOCS_REPO}}` | The docs repository name. | Role/handoff refs, card context. | `acme-app-docs` |
+| `{{QA_DIR}}` | The directory / repo where QA artifacts (test plans, fixtures) live. | QA role, handoff refs. | `acme-app-qa`, `./qa` |
+| `{{TEST_ACCOUNTS}}` | A **local-only** placeholder for test logins / accounts — **fill locally, NEVER commit.** Keep its file gitignored. | Secrets & safety, `.gitignore` note. | _(local file, never committed)_ |
+| `{{STAKEHOLDER}}` | A generic non-engineering stakeholder reference (e.g. an MD / DPO / product owner) when one must be named generically. | `FYI` entries, escalation context. | `the product owner` |
+
 > **Note on derived names.** Some tokens form compound strings:
 > - `{{ASSISTANT}}` → the capture-note glob `*-{{ASSISTANT}}-*.md` and the `ASSISTANT_TAG` env value. These three (the hook glob, `capture.sh`, `session-start.sh`, `curate-cron.sh`) **must stay consistent** — see SETUP.md.
 > - `{{DOMAIN}}` → `api.{{DOMAIN}}`, `{{DEPLOY_PLATFORM}}.{{DOMAIN}}`.
@@ -66,6 +87,22 @@ REGISTRY='Docker Hub'
 OBJECT_STORE=S3
 OWNER_ROLE='your manager'
 
+# team-coordination (COORD) tokens — only needed if you run the /coord-* workflow
+HOST=you
+INTEGRATION_BRANCH=develop
+PROTECTED_BRANCHES='main, staging, production'
+DEV_URL='https://dev.example.com'
+STAGING_URL='https://staging.example.com'
+HEALTH_ENDPOINT=/health
+TIMEZONE=UTC
+REPO_ROOT='~/work/acme-app'
+BACKEND_REPO=acme-app-backend
+FRONTEND_REPO=acme-app-frontend
+DOCS_REPO=acme-app-docs
+QA_DIR=acme-app-qa
+STAKEHOLDER='the product owner'
+# {{TEST_ACCOUNTS}} is intentionally NOT set here — it's a local-only, never-committed file.
+
 # replace every token in every text file under the repo
 grep -rlZ '{{' . --include='*.md' --include='*.json' --include='*.sh' \
   | xargs -0 sed -i '' \
@@ -80,8 +117,23 @@ grep -rlZ '{{' . --include='*.md' --include='*.json' --include='*.sh' \
     -e "s|{{DEPLOY_PLATFORM}}|$DEPLOY_PLATFORM|g" \
     -e "s|{{REGISTRY}}|$REGISTRY|g" \
     -e "s|{{OBJECT_STORE}}|$OBJECT_STORE|g" \
-    -e "s|{{OWNER_ROLE}}|$OWNER_ROLE|g"
+    -e "s|{{OWNER_ROLE}}|$OWNER_ROLE|g" \
+    -e "s|{{HOST}}|$HOST|g" \
+    -e "s|{{INTEGRATION_BRANCH}}|$INTEGRATION_BRANCH|g" \
+    -e "s|{{PROTECTED_BRANCHES}}|$PROTECTED_BRANCHES|g" \
+    -e "s|{{DEV_URL}}|$DEV_URL|g" \
+    -e "s|{{STAGING_URL}}|$STAGING_URL|g" \
+    -e "s|{{HEALTH_ENDPOINT}}|$HEALTH_ENDPOINT|g" \
+    -e "s|{{TIMEZONE}}|$TIMEZONE|g" \
+    -e "s|{{REPO_ROOT}}|$REPO_ROOT|g" \
+    -e "s|{{BACKEND_REPO}}|$BACKEND_REPO|g" \
+    -e "s|{{FRONTEND_REPO}}|$FRONTEND_REPO|g" \
+    -e "s|{{DOCS_REPO}}|$DOCS_REPO|g" \
+    -e "s|{{QA_DIR}}|$QA_DIR|g" \
+    -e "s|{{STAKEHOLDER}}|$STAKEHOLDER|g"
 ```
+
+> `{{TEST_ACCOUNTS}}` is deliberately left out of the find/replace — it points at a **local-only file you never commit**. Fill it on your machine and gitignore it (see [`team-coordination.md`](team-coordination.md) → Secrets & safety).
 
 > macOS BSD `sed` needs the empty `''` after `-i`. On GNU/Linux use `sed -i` (no `''`).
 
