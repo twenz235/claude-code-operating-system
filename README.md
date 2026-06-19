@@ -9,6 +9,24 @@ It is written **English-primary with a Thai gloss**. The bilingual character is 
 
 ---
 
+## ⚡ Flagship workflows
+
+Three things this operating system does that a cold Claude Code session can't:
+
+### 🚀 `/shipit` — one command, the whole delivery loop
+Hand it an agreed design and it runs the full cycle end to end: **implement → test-loop (red → fix → green) → commit → push → open the PR → merge into your integration branch → report.** It stops at every human gate (it will open a PR for protected branches but never click merge), and the token-heavy test churn runs inside an isolated `shipit-loop` subagent so your main context stays clean. You stay the pilot; it flies the loop.
+> _สั่งทีเดียววิ่งทั้งเส้น design→test→PR→merge integration branch หยุดถามทุก gate_
+
+### 🧪 `/test` — "is it green?" without shipping a thing
+The verify half of shipit. It **auto-detects your repo's test commands**, runs unit→e2e in an isolated loop, and returns an **honest** verdict — pass / fail / flaky / SKIP stated as-is, **never faked green** — as a clean report. It never touches git. The fast way to vet a PR before review.
+> _รันเทสจริง + report ตามจริง ไม่ commit/push ไม่ปลอม pass_
+
+### 👥 COORD — turn N sessions into one async dev team
+Run separate Claude Code sessions as **manager · design · worker · qa · security**, each claiming work off a shared **BOARD** file and handing off through it. Scale `worker`/`qa` to as many instances as you need (`/coord-worker 1`, `2`, …). A human relays the "go look at the board" tap between them — because sessions can't wake each other. A real team protocol, not one mega-prompt.
+> _หลาย session = ทีมเดียว แบ่งงานผ่าน BOARD มีคนเดินสาร relay_
+
+---
+
 ## Why it exists
 
 Claude Code is powerful but stateless and undisciplined by default: every session starts cold, every important habit has to be re-explained, and an agent that can edit its own config is one bad turn away from rewriting its own rules. This repo encodes a working engineer's habits as **skills the model can invoke on trigger**, **agents that isolate token-heavy or read-only work**, and **hooks that carry context across sessions** — then puts a **human approval gate** in front of any change the assistant wants to make to itself.
@@ -38,7 +56,7 @@ docs/                PLACEHOLDERS.md · SETUP.md · ARCHITECTURE.md · CHARTER.t
 ```
 
 ### The skills (≈45)
-An engineering toolkit grouped by purpose — SOP skills (review, deploy, infra, security/privacy, team comms), cross-cutting engineering disciplines (think-before-coding, TDD, surgical-changes, diagnose, post-mortem), communication/management (escalation language, conversation→ticket, triage), daily/weekly/monthly cadence, token-saving modes, governance (charter-check, ADR draft, bus-factor), and a few **orchestrators** that drive a full dev loop. The full map lives in [`.claude/skills/README.md`](.claude/skills/README.md).
+An engineering toolkit grouped by purpose — SOP skills (review, deploy, infra, security/privacy, team comms), cross-cutting engineering disciplines (think-before-coding, TDD, surgical-changes, diagnose, post-mortem), communication/management (escalation language, conversation→ticket, triage), daily/weekly/monthly cadence, token-saving modes, governance (charter-check, ADR draft, bus-factor), and a few **orchestrators** (`/shipit`, `/test`, `/design-cards`) that drive a full dev loop — see the Flagship workflows above. The full map lives in [`.claude/skills/README.md`](.claude/skills/README.md).
 
 ### The agents
 Subagents spawned by skills to keep work isolated:
