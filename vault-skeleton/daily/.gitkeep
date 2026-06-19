@@ -1,0 +1,3 @@
+# Keeps daily/ in version control while empty.
+# Role: one note per working day (startup / shutdown logs).
+# Used by daily-startup / daily-shutdown skills. Safe to delete once real notes exist.

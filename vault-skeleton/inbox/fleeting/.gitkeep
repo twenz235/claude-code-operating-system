@@ -1,0 +1,3 @@
+# Keeps inbox/fleeting/ in version control while empty.
+# Role: raw quick-captures — capture first, organize later.
+# Used by capture/knowledge skills. Safe to delete once real notes exist.

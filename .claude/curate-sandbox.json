@@ -1,0 +1,17 @@
+{
+  "_comment": "Sandbox for the UNATTENDED weekly curate (curate-cron.sh). proposals-only: the headless run may READ anything and WRITE only to the proposals dir. It is denied ALL writes under ~/.claude (memory, skills, agents, CLAUDE.md, settings). Memory facts it wants to add are written INTO the proposal for the human to apply via the review-proposals skill.",
+  "_paths": "Permission rules below use ${HOME} for portability. Point the proposals globs at your own notes-vault (the dir curate-cron.sh writes to: $CLAUDE_VAULT/agent/proposals). Replace ${HOME}/notes if your vault lives elsewhere.",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write(${HOME}/notes/agent/proposals/**)",
+      "Edit(${HOME}/notes/agent/proposals/**)"
+    ],
+    "deny": [
+      "Write(${HOME}/.claude/**)",
+      "Edit(${HOME}/.claude/**)"
+    ]
+  }
+}

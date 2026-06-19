@@ -1,0 +1,3 @@
+# Keeps templates/ in version control while empty.
+# Role: reusable note shapes (daily, weekly, adr, meeting, 1on1, post-mortem, …).
+# Used by most cadence skills. Safe to delete once real templates exist.

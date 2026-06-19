@@ -1,0 +1,31 @@
+{
+  "//": "EXAMPLE of the gitignored local-override file. คัดลอกเป็น settings.local.json (ไม่มี .example) แล้วเติมค่าจริงของเครื่องคุณ. ไฟล์ตัวจริงต้องอยู่ใน .gitignore เสมอ — มันถือ host/secret เฉพาะเครื่อง. NEVER commit the real file.",
+
+  "//how-it-works": "settings.local.json จะ merge ทับ settings.json เฉพาะเครื่องนี้ — เหมาะกับ permission ที่ผูกกับ path/แอป local, MCP tool ที่คุณเปิดเอง, หรือ env var ที่ห้าม commit. ทุกค่าด้านล่างเป็น placeholder ปลอม ใส่เพื่ออธิบายรูปแบบเท่านั้น.",
+
+  "permissions": {
+    "//allow": "เพิ่ม permission ที่ปลอดภัยต่อ workflow ของคุณ. ตัวอย่างด้านล่างเป็น placeholder — แทนที่ด้วยของจริงบนเครื่องคุณ.",
+    "allow": [
+      "Bash(/Applications/YourEditor.app/Contents/MacOS/your-editor --version)",
+      "Bash(brew list *)",
+      "Bash(git show *)",
+      "Bash(gh repo *)",
+      "WebSearch",
+
+      "// MCP note: if you connect an MCP server (e.g. an issue tracker), list its read-only tools here. Tool names depend on your MCP. Examples below:",
+      "mcp__YOUR_TRACKER__list_issues",
+      "mcp__YOUR_TRACKER__get_issue",
+
+      "// path note: permissions tied to a local machine path belong in THIS file, not the committed settings.json. Example:",
+      "Bash(cd <your-project-root>)"
+    ]
+  },
+
+  "//env": "OPTIONAL — env var เฉพาะเครื่อง. อย่าใส่ secret จริงใน repo. ใส่เฉพาะค่า non-secret หรือ pointer ไปยัง secret manager. ทุกค่าข้างล่างเป็น FAKE placeholder.",
+  "env": {
+    "//DEPLOY_KEY": "อ่านจากไฟล์ ไม่ฮาร์ดโค้ดค่าจริง — เก็บคีย์จริงไว้ที่ ~/.deploy_platform_key (chmod 600) แล้วให้สคริปต์อ่านเอง.",
+    "EXAMPLE_DEPLOY_PLATFORM_API_KEY": "REPLACE_ME_fake-not-a-real-key-0000",
+    "EXAMPLE_OBJECT_STORE_BUCKET": "your-backup-bucket-name",
+    "EXAMPLE_TRACKER_API_TOKEN": "REPLACE_ME_fake-tracker-token-0000"
+  }
+}

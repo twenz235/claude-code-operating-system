@@ -1,0 +1,49 @@
+{
+  "//": "ccos — Claude Code Operating System: user-level settings template. คัดลอกไป ~/.claude/settings.json แล้วปรับตามเครื่องคุณ. Paths use ~ so they are portable across machines. ลบคอมเมนต์ (// keys) ออกก่อนใช้จริงถ้า harness ของคุณไม่ยอมรับ comment keys.",
+
+  "//permissions": "Allow-list ของ command/tool ที่ไม่ต้องถาม. เก็บแคบที่สุดเท่าที่ปลอดภัย — เพิ่มเองตามที่ใช้บ่อย. ใส่ ~/.claude/settings.json เพื่อให้ Claude แก้ไฟล์ settings ของตัวเองได้ และเปิด python3 ไว้เป็นตัวอย่าง.",
+  "permissions": {
+    "allow": [
+      "Edit(~/.claude/settings.json)",
+      "Bash(python3*)",
+      "Workflow"
+    ]
+  },
+
+  "//hooks": "Hooks = สคริปต์ที่ harness รัน (ไม่ใช่ Claude). สองตัวที่ ccos ใช้จริงคือ session-start.sh (โหลด context ตอนเปิด session) และ capture.sh (เก็บ session note ตอน Stop). ทั้งคู่อยู่ใน ~/.claude/hooks/ และต้อง chmod +x. Optional integrations (rtk PreToolUse, desktop notifier) ถูกถอดออก — ดู examples/integrations/ ถ้าต้องการเปิดใช้.",
+  "hooks": {
+    "//PreToolUse": "OPTIONAL — ถ้าคุณใช้ token-saving CLI proxy ที่ rewrite Bash commands, ลงทะเบียน PreToolUse hook ที่นี่. ตัวอย่าง config อยู่ใน examples/integrations/rtk.md. ปล่อยว่างถ้าไม่ใช้.",
+
+    "//Notification": "OPTIONAL — desktop/phone notifier hook (เช่น host CLI ที่ส่ง notification). ถอดออกจาก template เพราะผูกกับเครื่อง/บัญชีเฉพาะ. ดู examples/integrations/notifier.md.",
+
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-start.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/capture.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+
+  "//effortLevel": "ระดับความพยายาม default ของ assistant. tunable: low | medium | high | xhigh. ปรับลงถ้าต้องการตอบเร็ว/ประหยัด token, ปรับขึ้นถ้าต้องการตรวจ edge case ครบ. per-message override ทำได้ด้วย keyword (เช่น quickmode / deepdive) ถ้า CLAUDE.md ของคุณนิยามไว้.",
+  "effortLevel": "high",
+
+  "//notifications": "เปิด push notification ตอน agent ต้องการ input / ทำงานเสร็จ. ปรับเป็น false ถ้าไม่ต้องการ.",
+  "agentPushNotifEnabled": true
+}

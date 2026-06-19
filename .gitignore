@@ -1,0 +1,64 @@
+# ==============================================================================
+# claude-code-operating-system — .gitignore
+# Designed for when this repo IS your ~/.claude (or a project's .claude) and you
+# back it up to a remote. The point of this file is to keep PII and secrets OUT.
+# ออกแบบไว้กันข้อมูลส่วนตัว/secret ไม่ให้หลุดเข้า repo
+# ==============================================================================
+
+# --- Memory / PII (NEVER commit) ----------------------------------------------
+# Durable memory holds facts about real people, projects, and decisions — names,
+# paths, internal context. It is the PII choke point. It must never enter version
+# control (not even a private auto-pushed remote). The config-backup script
+# (.githooks/auto-sync-config.sh) excludes projects/ for the same reason; memory
+# moves only by deliberate, human-reviewed push.
+# memory = ข้อมูลส่วนตัว/โปรเจกต์จริง → ห้าม commit เด็ดขาด (sync เองหลังคนตรวจเท่านั้น)
+projects/
+**/memory/
+*-private.md
+
+# --- Local / per-machine overrides & secrets ----------------------------------
+# settings.local.json merges over settings.json for THIS machine only and holds
+# host-specific permissions, MCP tokens, and env. The committed template is
+# settings.local.json.example — the real file is private.
+.claude/settings.local.json
+settings.local.json
+.credentials.json
+**/.credentials.json
+*.pem
+*.key
+.deploy_platform_key
+
+# --- Runtime / generated dirs -------------------------------------------------
+logs/
+.sync/
+**/.curated/
+shell-snapshots/
+todos/
+statsig/
+ide/
+
+# --- Harness backups & scratch ------------------------------------------------
+*.harness-bak-*
+*.bak
+*.tmp
+*.orig
+
+# --- Caches -------------------------------------------------------------------
+__pycache__/
+*.pyc
+.cache/
+node_modules/
+.venv/
+venv/
+
+# --- OS / editor noise --------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
