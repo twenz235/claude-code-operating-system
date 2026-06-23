@@ -22,8 +22,8 @@ The verify half of shipit. It **auto-detects your repo's test commands**, runs u
 > _รันเทสจริง + report ตามจริง ไม่ commit/push ไม่ปลอม pass_
 
 ### 👥 COORD — turn N sessions into one async dev team
-Run separate Claude Code sessions as **manager · design · worker · qa · security**, each claiming work off a shared **BOARD** file and handing off through it. Scale `worker`/`qa` to as many instances as you need (`/coord-worker 1`, `2`, …). A human relays the "go look at the board" tap between them — because sessions can't wake each other. A real team protocol, not one mega-prompt.
-> _หลาย session = ทีมเดียว แบ่งงานผ่าน BOARD มีคนเดินสาร relay_
+Run separate Claude Code sessions as **manager · design · worker · qa · security**, each claiming work off a shared **BOARD** file and handing off through it. Scale `worker`/`qa` to as many instances as you need (`/coord-worker 1`, `2`, …). Each live session **wakes itself** — a background board watcher (`coord/board-wake.sh`, launched at boot) blocks until work relevant to that role lands, then the harness re-invokes the session — so a human only relays for cold starts or as a fallback. A real team protocol, not one mega-prompt.
+> _หลาย session = ทีมเดียว แบ่งงานผ่าน BOARD · แต่ละ session ปลุกตัวเองด้วย watcher · คนเดินสารแค่ cold start / fallback_
 
 ---
 
@@ -72,7 +72,7 @@ Subagents spawned by skills to keep work isolated:
 
 ### Multi-agent team coordination
 
-A set of slash commands (`/coord` engine + `/coord-manager` `/coord-design` `/coord-worker` `/coord-qa` `/coord-security`) lets several Claude Code sessions work one project **asynchronously**, coordinating through a shared **BOARD** file on disk — because sessions can't wake each other, a human courier relays the "go check the board" tap between them. `worker` and `qa` are single commands you run as multiple instances (`/coord-worker 1`, `/coord-worker 2`, …). The matching `team-coordination` skill explains the workflow; the full guide is **[`docs/team-coordination.md`](docs/team-coordination.md)**. _ทีม session หลายตัวทำงานพร้อมกันผ่าน BOARD บนดิสก์ มีคนเดินสาร relay ระหว่างกัน_
+A set of slash commands (`/coord` engine + `/coord-manager` `/coord-design` `/coord-worker` `/coord-qa` `/coord-security`) lets several Claude Code sessions work one project **asynchronously**, coordinating through a shared **BOARD** file on disk. Each role runs a **per-role self-wake watcher** (`coord/board-wake.sh`, launched in the background at boot) that wakes its session only when the board changes *meaningfully and in that role's lane* — so a running team coordinates itself, and the human courier relays only for cold starts or when a harness can't re-invoke a backgrounded session. `worker` and `qa` are single commands you run as multiple instances (`/coord-worker 1`, `/coord-worker 2`, …). The matching `team-coordination` skill explains the workflow; the full guide is **[`docs/team-coordination.md`](docs/team-coordination.md)**. _ทีม session หลายตัวทำงานพร้อมกันผ่าน BOARD บนดิสก์ · แต่ละ role มี self-wake watcher ปลุกตัวเอง · คนเดินสารแค่ cold start / fallback_
 
 ---
 
@@ -138,7 +138,7 @@ A worked example charter lives under [`examples/charter/`](examples/charter/).
 ## Optional integrations & examples
 
 Anything tied to a specific vendor or org policy ships under `examples/` so you copy + adapt rather than run as-is:
-- **`examples/integrations/`** — opt-in hook notes you wire up yourself: `rtk.md` documents a token-saving CLI proxy (`PreToolUse`), and there's a documented slot for a desktop/phone notifier (`Notification`). The core `settings.json` leaves these slots empty on purpose.
+- **`examples/integrations/`** — opt-in hook notes you wire up yourself: `rtk.md` documents a token-saving CLI proxy (`PreToolUse`), `notifier.md` is a documented slot for a desktop/phone notifier (`Notification`), and `coord-board-notifier.md` is an optional macOS `launchd` desktop alert for the COORD board (one human channel; distinct from the agent self-wake watcher). The core `settings.json` leaves these slots empty on purpose.
 - **`examples/skills/`** — org-specific cadence skills (`hiring-interview`, `refuse-list`, `weekly-review`, `workload-balance`) whose compensation/market/KPI/role framing is yours to fill.
 - **`examples/agents/`**, **`examples/notes/`**, **`examples/charter/`** — sample agents, note templates, and a filled charter.
 

@@ -119,7 +119,7 @@ These drive a multi-step loop and spawn helper agents.
 
 > The orchestrators stop at safe gates: they may merge into your **integration branch** (e.g. `dev`/`develop`) but open a **PR only** for `main`/`staging`/`prod` so a human approves the production merge. Adjust branch names to your flow.
 
-> **Multi-agent team coordination.** The `team-coordination` skill explains the `/coord-*` multi-session team workflow — several Claude Code sessions working one project **asynchronously** through a shared **BOARD** file, with a human courier relaying between them (sessions can't wake each other). It pairs with the `/coord` engine + `/coord-{manager,design,worker,qa,security}` commands; `worker`/`qa` run as multiple instances (`/coord-worker 1`, `2`, …). Full guide: [`docs/team-coordination.md`](../../docs/team-coordination.md). _ทีม session หลายตัวทำงานพร้อมกันผ่าน BOARD มีคนเดินสาร relay_
+> **Multi-agent team coordination.** The `team-coordination` skill explains the `/coord-*` multi-session team workflow — several Claude Code sessions working one project **asynchronously** through a shared **BOARD** file. Each role runs a background **self-wake watcher** (`coord/board-wake.sh`) that wakes its own session on lane-relevant board changes, so a running team coordinates itself; a human courier opens sessions for cold starts / relays as a fallback. It pairs with the `/coord` engine + `/coord-{manager,design,worker,qa,security}` commands; `worker`/`qa` run as multiple instances (`/coord-worker 1`, `2`, …). Full guide: [`docs/team-coordination.md`](../../docs/team-coordination.md). _ทีม session หลายตัวทำงานพร้อมกันผ่าน BOARD · แต่ละ role มี self-wake watcher · คนเดินสารแค่ cold start / fallback_
 
 ## Group I: Self-upgrade (approval gate)
 

@@ -3,8 +3,9 @@
 > Shared file of all sessions: **manager · design · worker · qa · security**.
 > The board is a **file-as-message-bus**: each session reads this file, finds entries
 > addressed to it, acts, and writes its reply/status back. No session talks to another
-> directly — {{HOST}} (the human courier) relays "check the board" / `/coord` between
-> sessions when needed.
+> directly — a running session **wakes itself** via its `coord/board-wake.sh` watcher when
+> work lands in its lane; {{HOST}} (the human courier) opens sessions for cold starts and
+> relays "check the board" / `/coord` as a fallback.
 > ภาษา: English-primary, Thai gloss ได้ (บอร์ดเป็น 2 ภาษาได้).
 > All timestamps = **{{TIMEZONE}}** (declare once here; never repeat per-entry).
 

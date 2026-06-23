@@ -31,7 +31,7 @@ These are used by the `/coord-*` commands, the BOARD, and [`team-coordination.md
 
 | Token | Meaning | Where it appears | Example value |
 |-------|---------|------------------|---------------|
-| `{{HOST}}` | The human courier who relays messages between sessions — reads "relay to `<role>`" off the board and opens the next session. Not a role; the only cross-session channel. | `team-coordination.md`, the BOARD legend, every relay line, `/coord-*` commands. | `you`, `your name`, `the relay` |
+| `{{HOST}}` | The human courier who **opens sessions for cold starts** and relays "relay to `<role>`" as a **fallback** (running sessions self-wake via `coord/board-wake.sh`). Not a role; not the only channel — the board + watcher carry most coordination. | `team-coordination.md`, the BOARD legend, every relay line, `/coord-*` commands. | `you`, `your name`, `the relay` |
 | `{{INTEGRATION_BRANCH}}` | The branch feature/fix work merges into first (and the only branch a session may merge into). | Git charter, git-permissions table, worker/manager flow. | `develop`, `dev`, `main` |
 | `{{PROTECTED_BRANCHES}}` | Branch(es) no session may touch directly — PR only, human merges. | Git charter, git-permissions table. | `main, staging, production` |
 | `{{DEV_URL}}` | The dev environment base URL (for stale-SHA / health checks). | Troubleshooting, health checks. | `https://dev.example.com` |
@@ -45,6 +45,12 @@ These are used by the `/coord-*` commands, the BOARD, and [`team-coordination.md
 | `{{QA_DIR}}` | The directory / repo where QA artifacts (test plans, fixtures) live. | QA role, handoff refs. | `acme-app-qa`, `./qa` |
 | `{{TEST_ACCOUNTS}}` | A **local-only** placeholder for test logins / accounts — **fill locally, NEVER commit.** Keep its file gitignored. | Secrets & safety, `.gitignore` note. | _(local file, never committed)_ |
 | `{{STAKEHOLDER}}` | A generic non-engineering stakeholder reference (e.g. an MD / DPO / product owner) when one must be named generically. | `FYI` entries, escalation context. | `the product owner` |
+
+> **`COORD_BOARD` is an env var, not a `{{}}` token.** The self-wake watcher
+> (`coord/board-wake.sh`) reads the board from `$COORD_BOARD`, defaulting to
+> `./coord/BOARD.md` (repo-relative, run from your repo root). Leave it unset if the board
+> lives at the default path; export it only if your board is elsewhere. It is **not** part
+> of the find/replace recipe. _COORD_BOARD = env var มี default `./coord/BOARD.md` ไม่ใช่ token_
 
 > **Note on derived names.** Some tokens form compound strings:
 > - `{{ASSISTANT}}` → the capture-note glob `*-{{ASSISTANT}}-*.md` and the `ASSISTANT_TAG` env value. These three (the hook glob, `capture.sh`, `session-start.sh`, `curate-cron.sh`) **must stay consistent** — see SETUP.md.

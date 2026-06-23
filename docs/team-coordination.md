@@ -11,8 +11,8 @@ This guide assumes you've filled the placeholders (see [`PLACEHOLDERS.md`](PLACE
 
 The whole system exists to work around **one hard constraint**:
 
-> **Claude Code sessions cannot wake each other.** A session runs, does work, and stops. It cannot ping another session, cannot block waiting for a reply, cannot poll in real time. There is no message bus, no shared memory between live processes.
-> _session ปลุกกันเองไม่ได้ — มันรันแล้วหยุด ส่งข้อความหา session อื่นเองไม่ได้ รอ reply แบบ block ก็ไม่ได้_
+> **Claude Code sessions cannot signal each other.** A session runs, does work, and stops. It cannot ping another session, cannot block waiting for a reply on a live channel. There is no message bus, no shared memory between live processes.
+> _session ส่งสัญญาณหากันโดยตรงไม่ได้ — รันแล้วหยุด ไม่มี bus ไม่มี shared memory ระหว่าง process_
 
 So coordination is **async and file-based**. Each session:
 
@@ -21,12 +21,13 @@ So coordination is **async and file-based**. Each session:
 3. writes the result + any message-to-another-role onto the board,
 4. stops.
 
-The missing piece — *getting the next session to actually run* — is filled by a human:
+The missing piece — *getting the next session to actually run* — is filled two ways:
 
-> **{{HOST}}** is the human courier. {{HOST}} relays: reads "relay to qa-1" off the board and opens (or re-prompts) the qa-1 session so it picks the message up. {{HOST}} is **not** a role, does **not** do engineering work, and holds the **only** cross-session channel. No session has a live link to any other; everything passes through the board, and {{HOST}} carries the "go check the board" tap.
-> _{{HOST}} = คนเดินสาร อ่าน "relay to qa-1" จาก board แล้วไปเปิด session qa-1 ให้มันมาอ่านข้อความ — {{HOST}} ไม่ใช่ role ไม่เขียนโค้ด เป็นช่องทางข้าม session ช่องเดียว_
+> **1) Self-wake (the default for a live session).** Each role launches a tiny background watcher at boot — **`coord/board-wake.sh <role>`** — that blocks until the board changes in a way that is **meaningful** (it ignores pure checkbox flips) **and relevant to that role** (an entry addressed to it / `all`, or its own STATUS row), then exits. A harness that **re-invokes the agent when a backgrounded process exits** then hands the session the diff, it reacts, and relaunches the watcher. A session can't wake *another* session — but it can watch the board and **wake itself**, so a running team coordinates without a human in the loop. _แต่ละ role boot watcher ปลุกตัวเองเมื่อบอร์ดมีงานถึง role นั้น_
+>
+> **2) {{HOST}} (cold start + fallback).** **{{HOST}}** is the human courier: opens a session that isn't running yet, and relays the "check the board" tap on harnesses that can't re-invoke a backgrounded process. {{HOST}} is **not** a role and does **not** do engineering work. With self-wake working, {{HOST}}'s job shrinks to *starting* sessions and being the fallback. _{{HOST}} = เปิด session ที่ยังไม่รัน + fallback ถ้า harness ปลุกเองไม่ได้_
 
-This is the mental model for everything below: **sessions talk by writing; {{HOST}} makes the reader show up.**
+This is the mental model for everything below: **sessions talk by writing; the watcher (or {{HOST}}) makes the reader show up.** The watcher relies on a `run_in_background` that re-invokes the session on process exit — if your harness lacks that, simply skip the watcher and let {{HOST}} carry every tap; everything else works unchanged.
 
 ---
 
@@ -34,14 +35,16 @@ This is the mental model for everything below: **sessions talk by writing; {{HOS
 
 1. **Fill the placeholders.** This system adds its own tokens on top of the base set — `{{HOST}}`, `{{INTEGRATION_BRANCH}}`, `{{PROTECTED_BRANCHES}}`, `{{DEV_URL}}`, `{{STAGING_URL}}`, `{{HEALTH_ENDPOINT}}`, `{{TIMEZONE}}`, `{{REPO_ROOT}}`, `{{BACKEND_REPO}}`, `{{FRONTEND_REPO}}`, `{{DOCS_REPO}}`, `{{QA_DIR}}`, `{{TEST_ACCOUNTS}}`, `{{STAKEHOLDER}}`. All are defined in [`PLACEHOLDERS.md`](PLACEHOLDERS.md). _เติม placeholder ให้ครบก่อน_
 
-2. **Install the commands.** Copy the team-coordination commands into your commands dir so they're invokable as slash commands:
+2. **Install the commands + the watcher.** Copy the team-coordination commands into your commands dir so they're invokable as slash commands, and keep `coord/board-wake.sh` executable (`chmod +x`):
    - `/coord` — the **engine** (shared protocol all roles read; not a role itself).
    - `/coord-manager` `/coord-design` `/coord-worker` `/coord-qa` `/coord-security` — the **role bootstraps**.
+   - `coord/board-wake.sh` — the **per-role self-wake watcher** each role launches in the background at boot (see Overview). Reads `./coord/BOARD.md` by default; set `COORD_BOARD` to point elsewhere.
 
 3. **Create the board + memory layout** under `./coord/`:
    ```
    ./coord/
      BOARD.md            # the shared async message board (all roles read+append)
+     board-wake.sh       # per-role self-wake watcher (run_in_background at boot)
      mem/
        manager.md        # one memory file per role / instance
        design.md
@@ -51,7 +54,7 @@ This is the mental model for everything below: **sessions talk by writing; {{HOS
        security.md
      archive/            # rotated BOARD entries (keep BOARD.md short)
    ```
-   _วาง BOARD + memory ไว้ใต้ `./coord/`_
+   _วาง BOARD + watcher + memory ไว้ใต้ `./coord/`_
 
 4. **Decide your timezone once.** All board timestamps use `{{TIMEZONE}}`, declared once in the board legend so nobody has to guess. _ตั้ง timezone ครั้งเดียวใน legend_
 
@@ -99,10 +102,12 @@ To bring a role online, {{HOST}} runs its command (with an instance arg for work
 /coord-security
 ```
 
-Every role command does the **same read order** at startup, so a freshly-opened session resumes warm:
+Every role command does the **same boot sequence** at startup, so a freshly-opened session resumes warm:
 
-> **1) own memory → 2) BOARD → 3) `/coord` (the engine).**
-> _อ่านตามลำดับ: memory ตัวเอง → BOARD → /coord_
+> **0) launch the self-wake watcher (background) → 1) own memory → 2) BOARD → 3) `/coord` (the engine).**
+> _ลำดับ boot: ปลุก watcher (background) → memory ตัวเอง → BOARD → /coord_
+
+Step 0 — `bash ./coord/board-wake.sh <role>` with `run_in_background: true` — is what lets the session wake itself later; steps 1–3 are the warm read. On a harness without background re-invoke, skip step 0 and rely on {{HOST}} to relay.
 
 - **own memory** (`./coord/mem/<role>.md`, or `worker-<n>.md` / `qa-<n>.md`) → "where was I, what did I decide, what's in flight." _ฉันค้างอะไรไว้_
 - **BOARD** (`./coord/BOARD.md`) → "what's addressed to me, what changed." _มีอะไรถึงฉัน_
@@ -124,7 +129,8 @@ The board opens with a fixed legend so any session can parse it cold:
 LEGEND
   timezone : {{TIMEZONE}}        # all timestamps below are in this zone
   roles    : manager · design · worker-<n> · qa-<n> · security
-  relay    : {{HOST}} carries "relay to <role>" — sessions can't wake each other
+  wake     : each running role self-wakes via coord/board-wake.sh on lane-relevant changes
+  relay    : {{HOST}} opens sessions for cold starts / relays "relay to <role>" as fallback
   STATUS   : current owner/state per active card (the at-a-glance table)
   LOG      : the append-only message stream (newest at bottom)
 ```
@@ -205,12 +211,17 @@ Discipline / กติกา:
 
 ## The relay model in practice / โมเดล relay จริง
 
-Because no session can wake another, **every handoff has two parts**:
+Because no session can signal another, **every handoff has two parts**:
 
 1. the **board entry** (`TYPE=HANDOFF to=<next-role>` + artifact), and
-2. a plain **"relay to `<next-role>`"** line so {{HOST}} knows which session to open next.
+2. a plain **"relay to `<next-role>`"** line naming who should pick it up next.
 
-{{HOST}} reads the relay line, opens (or re-prompts) that role's session, and the new session's startup read-order picks the handoff up. That's the whole loop.
+How the next session shows up depends on whether it's running:
+
+- **It's already running** → its own `board-wake.sh` watcher sees the new entry (it's addressed to that role), exits, and the harness re-invokes it with the diff. **No human needed.** The "relay to" line is then just a human-readable breadcrumb. _session ที่รันอยู่ → watcher ปลุกเอง_
+- **It's not running yet (cold start), or the harness can't re-invoke** → {{HOST}} reads the "relay to" line and opens (or re-prompts) that role's session, whose boot sequence picks the handoff up. _ยังไม่เปิด / harness ปลุกไม่ได้ → {{HOST}} เปิดให้_
+
+That's the whole loop — self-driving while the team is live, with {{HOST}} covering cold starts and as a fallback.
 
 ### Worked example — a feature end to end / ตัวอย่างฟีเจอร์ครบวง
 
@@ -296,7 +307,22 @@ Work is **promoted** (merged into `{{INTEGRATION_BRANCH}}`) only after it's **ve
   | **SHIP** | Meets acceptance criteria, no caveats. _ผ่าน ไม่มีเงื่อนไข_ |
   | **SHIP-WITH-NOTES** | Acceptable to merge, but with documented follow-ups/caveats. _ผ่านแบบมีหมายเหตุ_ |
   | **BLOCK** | Fails acceptance; states why + what to fix. _ไม่ผ่าน บอกเหตุ_ |
+- **QA ticks the Acceptance Criteria honestly after verifying.** The card is the single source of truth for progress, so its AC must mirror reality: PASS = `[x]`; FAIL / pending = `[ ]` + reason; device- or host-gated (QA can't run it) = `[ ]` + who must. **Never tick an untested criterion.** A bare "verified" with stale checkboxes hides which AC actually passed. _เทสเสร็จติ๊ก AC ตามจริง ห้ามติ๊กข้อที่ยังไม่เทส_
 - **CI-green** — a card is not promotable while CI is red. The manager waits for green (or runs the gate) before merging. _CI ต้องเขียวก่อน promote_
+
+---
+
+## Working discipline / กติกาการทำงาน
+
+Cross-role conventions that keep the board trustworthy:
+
+- **No-guessing (binding).** Never guess on a load-bearing fact — permission scope, API behavior, a config/env value, file/branch state, how the existing code works. **Verify until certain** before you assert, assign, change code, tick a card, or report; if you genuinely can't find out, say **"don't know"** and keep digging rather than masking it. A board entry stated as fact is trusted by every other role. _ห้ามเดาเรื่อง load-bearing — verify จนแน่ใจ ไม่รู้ให้บอกว่าไม่รู้_
+- **Move the card to match reality.** Start → *in progress*, out for verify → *in review*, verified → *done*. Tracker state tracks the work, not the other way round. _ขยับสถานะการ์ดตามงานจริง_
+- **Code-to-test, not test-to-code.** Acceptance criteria / specs are the target — make the code satisfy them; never bend a test or an AC to match what the code happens to do. _แก้โค้ดให้ผ่าน spec/AC ไม่บิด test_
+- **Consolidate by default.** One card with sub-criteria beats many tiny cards; split only across genuinely different repos / lanes / domains. _รวบ 1 การ์ด · แยกเฉพาะจำเป็น_
+- **A long batch → one branch, one PR.** Group related work to cut CI churn; separate commits per sub-item. _งานชุดยาว = 1 branch + 1 PR_
+- **Stay in your lane.** Testers test and hand bugs back; designers design; workers implement. Route work to the lane that owns it. _ทำตามบทบาท ไม่ข้ามเลน_
+- **Preview a UI change before you card it.** For anything visual, attach a before→after preview (screenshot / mock) to the card when you open it, so reviewers see the delta up front. _การ์ด UI = โชว์ before→after ก่อนเปิด_
 
 ---
 
