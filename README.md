@@ -2,6 +2,8 @@
 
 > A **dev / engineering operating system** for [Claude Code](https://docs.anthropic.com/en/docs/claude-code): skills + agents + hooks + a safe self-upgrade loop. For any engineer who wants Claude Code to behave with discipline.
 > ระบบปฏิบัติการสำหรับนักพัฒนา/วิศวกรบน Claude Code — ชุด skill + agent + hook + ลูปอัปเกรดตัวเองแบบมี approval gate
+>
+> 🇹🇭 **อ่านภาษาไทย: [README.th.md](README.th.md)**
 
 This is a template repo. Fork it, drop it into `~/.claude` (user-level) or a project, fill in the placeholders, wire up the hooks — and your assistant gains a repeatable set of engineering disciplines (review, deploy, debug, plan, cadence) plus a continuity layer that remembers across sessions and proposes its own improvements **without ever editing itself silently**.
 
@@ -101,6 +103,12 @@ This split — *facts are cheap, behavior changes are gated* — is the core saf
 ---
 
 ## Quick start
+
+> **Quickest start — let Claude set it up for you.** Open this repo in Claude Code and just say:
+> *"I want to use this operating system — read `docs/SETUP.md` and `docs/PLACEHOLDERS.md`, then set it up for me: ask me for the placeholder values you need one at a time, run the find/replace across the repo, create the vault layout, and wire the hooks in `settings.json`."*
+> Claude reads the setup docs, interviews you for the missing values, replaces every `{{TOKEN}}`, scaffolds the vault, and wires the hooks — then verifies nothing is left unset. Want just one part? Ask it to *"set up only the team coordination (COORD) workflow."* _ให้ Claude เซ็ตอัพให้ — บอกว่า "ช่วยเซ็ตอัพ repo นี้ให้หน่อย" ดูฉบับเต็มใน [README.th.md](README.th.md)._
+
+Prefer to do it by hand:
 
 ```bash
 # 1. Fork, then copy the operating system into your user-level Claude config
