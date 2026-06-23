@@ -3,13 +3,14 @@ name: team-coordination
 description: >-
   Entry point to COORD — an async, file-based multi-agent team for Claude Code.
   Several role sessions (manager, design, worker, qa, security) coordinate by
-  reading and writing a shared on-disk BOARD message bus, with a human (the
-  {{HOST}}) relaying messages between sessions and each role keeping its own
-  memory file. Use this to understand the system, then run /coord-<role> to take
+  reading and writing a shared on-disk BOARD message bus. Each role self-wakes off
+  the board via a background watcher, with a human (the {{HOST}}) opening sessions
+  for cold starts / relaying as a fallback, and each role keeping its own memory
+  file. Use this to understand the system, then run /coord-<role> to take
   a seat. Glossary (TH) — จุดเริ่มของ COORD — ทีม multi-agent แบบ async
-  ที่คุยกันผ่านไฟล์ BOARD บนดิสก์ มีคน ({{HOST}}) เป็นคนส่งข้อความระหว่าง session
-  และแต่ละ role มี memory ของตัวเอง. Trigger when you want to set up or join a
-  multi-session team, understand the COORD board / roles / human-relay model, or
+  ที่คุยกันผ่านไฟล์ BOARD บนดิสก์ แต่ละ role ปลุกตัวเองด้วย watcher มีคน ({{HOST}}) เปิด
+  session/relay เป็น fallback และแต่ละ role มี memory ของตัวเอง. Trigger when you want to set up or join a
+  multi-session team, understand the COORD board / roles / self-wake + human-relay model, or
   are asked to act as manager/design/worker/qa/security.
 ---
 
@@ -17,11 +18,14 @@ description: >-
 
 COORD is an **asynchronous, file-based multi-agent team** for Claude Code. There is no live RPC and no shared
 process — every role is a **separate Claude Code session**, and they coordinate by reading and writing **plain
-files on disk**. A **human (the {{HOST}})** is the courier who carries messages between sessions. That's the whole
-trick: durable, inspectable, and resumable, because the entire team state is just files you can open and read.
+files on disk**. Each role runs a background **self-wake watcher** (`coord/board-wake.sh`) that re-invokes its own
+session when the board gets work in its lane; a **human (the {{HOST}})** opens sessions for cold starts and relays
+as a fallback. That's the whole trick: durable, inspectable, and resumable, because the entire team state is just
+files you can open and read.
 
 > **Glossary (TH):** COORD คือทีม multi-agent แบบ **async ที่คุยกันผ่านไฟล์**. ไม่มี RPC สด ไม่มี process ร่วม —
-> แต่ละ role คือ Claude Code คนละ session คุยกันผ่าน **ไฟล์บนดิสก์** โดยมี **คน ({{HOST}})** เป็นคนส่งข้อความข้าม session.
+> แต่ละ role คือ Claude Code คนละ session คุยกันผ่าน **ไฟล์บนดิสก์** · แต่ละ role มี **self-wake watcher** (`coord/board-wake.sh`)
+> ปลุกตัวเองเมื่อบอร์ดมีงานถึงเลนตัวเอง · **คน ({{HOST}})** เปิด session ตอน cold start + relay เป็น fallback.
 > ข้อดี: state ทั้งทีมเป็นไฟล์ เปิดอ่าน ตรวจสอบ และทำต่อทีหลังได้.
 
 ## The mental model / โมเดลความคิด
@@ -36,14 +40,17 @@ trick: durable, inspectable, and resumable, because the entire team state is jus
 - **The BOARD is the message bus.** All cross-role messages are rows on a shared on-disk board, tagged by
   **lane** and **message type** — `TRIAGE / ASSIGN / HANDOFF / QUESTION / ANSWER / DONE / BLOCKED / FYI`. A role
   reads the board, acts, and writes its reply back as a new row. Nobody talks directly to another session.
-- **The {{HOST}} is the relay.** Sessions can't ping each other, so the human flips between sessions and says
-  "the board has new rows for you." The human is a courier, **not** a participant who does the roles' work.
+- **Sessions self-wake; the {{HOST}} covers cold starts.** A session can't ping *another*, but each role launches
+  a background watcher (`coord/board-wake.sh <role>`) at boot that wakes its **own** session when the board gets
+  work in its lane — so a running team coordinates itself, no human tap per message. The **{{HOST}}** (a human
+  courier, **not** a participant who does the roles' work) opens sessions that aren't running yet, and relays
+  manually as a fallback on harnesses that can't re-invoke a backgrounded process.
 - **Per-role memory.** Each role keeps a durable memory file at `./coord/mem/<role>.md` — for parameterized
   roles it's `./coord/mem/worker-<n>.md` / `./coord/mem/qa-<n>.md`. A role re-reads its own memory on wake so it
   survives a restart with full context.
 
 > **(TH):** Role = session (เปิดด้วย slash command) · BOARD = ไฟล์กลางที่ทุก role อ่าน/เขียน (มี lane + ชนิดข้อความ) ·
-> {{HOST}} = คนส่งสาร ไม่ใช่คนทำงานแทน role · แต่ละ role มี memory ของตัวเองที่ `./coord/mem/<role>.md`.
+> แต่ละ role ปลุกตัวเองด้วย watcher · {{HOST}} = เปิด session/relay เป็น fallback ไม่ใช่คนทำงานแทน role · แต่ละ role มี memory ที่ `./coord/mem/<role>.md`.
 
 ## Running multiple instances / รันหลาย instance
 
@@ -68,14 +75,15 @@ session C:  /coord-qa 1         # verifies lane qa-1,   memory ./coord/mem/qa-1.
 2. **Take a seat** by running the role you want: `/coord-manager`, `/coord-design`, `/coord-worker <n>`,
    `/coord-qa <n>`, or `/coord-security`. Each one loads the `/coord` engine, reads the board, reads its own
    memory, and tells you what's waiting in its lane.
-3. **Relay.** When a session writes new board rows for another role, switch to that session (as the {{HOST}}) and
-   let it pick the rows up.
+3. **Mostly hands-off once live.** A running session's watcher wakes it when new rows land in its lane — you don't
+   relay each message. As the {{HOST}} you only *open* sessions for cold starts (and relay manually if your harness
+   can't re-invoke a backgrounded process).
 
 For the full protocol — the board schema, the message-type semantics, the board legend (including the declared
 {{TIMEZONE}}), the per-role responsibilities, and the git charter (merge only into {{INTEGRATION_BRANCH}} with a
 merge commit, never touch {{PROTECTED_BRANCHES}}, security-touching PRs get no self-merge) — read
 **`docs/team-coordination.md`**. For first-run scaffolding, read **`coord/SETUP.md`**.
 
-> **(TH):** ครั้งแรกทำ setup ที่ `coord/SETUP.md` → เปิด role ที่ต้องการด้วย `/coord-<role>` → ทำหน้าที่ relay เมื่อมี
-> row ใหม่สำหรับ role อื่น. โปรโตคอลเต็ม (schema ของบอร์ด, ชนิดข้อความ, legend + {{TIMEZONE}}, หน้าที่แต่ละ role, git charter)
+> **(TH):** ครั้งแรกทำ setup ที่ `coord/SETUP.md` → เปิด role ที่ต้องการด้วย `/coord-<role>` (boot watcher เอง) → session ที่รันอยู่
+> ปลุกตัวเองเมื่อมี row ใหม่ในเลนตัวเอง · {{HOST}} แค่เปิด session ตอน cold start. โปรโตคอลเต็ม (schema ของบอร์ด, ชนิดข้อความ, legend + {{TIMEZONE}}, หน้าที่แต่ละ role, git charter)
 > อยู่ที่ **`docs/team-coordination.md`**.

@@ -52,12 +52,22 @@ coord/.qa-secrets
 - **Responsive UI pass:** test the key mobile widths (e.g. 320 / 360 / 390). _TODO._
 - **SHA gate:** always confirm `{{HEALTH_ENDPOINT}}` `<SHA>` before trusting a verdict.
 
+## Tick the Acceptance Criteria (after verifying)
+
+Before you hand a verdict back, update the **card's** AC checkboxes so the card mirrors
+reality — the card is the single source of truth for progress:
+
+- PASS = `[x]` · FAIL / pending = `[ ]` + the reason · device- or host-gated (you can't run
+  it) = `[ ]` + a flag for who must run it.
+- **Never tick a criterion you didn't actually test.** "AC coverage `<x/y>`" in the handoff
+  must match the boxes you actually ticked. _เทสเสร็จติ๊ก AC ตามจริง · ห้ามติ๊กข้อที่ยังไม่เทส_
+
 ## Handoff template
 
 <!-- Paste into a board ↳ reply when handing a verdict back. -->
 ```
 ↳ [qa-<n>] <MM-DD HH:MM> · DONE · <CARD-ID> verdict on <env>: PASS / PARTIAL / FAIL
-- AC coverage: <x/y>
+- AC coverage: <x/y>   (matches the AC checkboxes ticked on the card)
 - evidence: <what you observed; no creds>
 - residual: <follow-ups or none>
 ```
